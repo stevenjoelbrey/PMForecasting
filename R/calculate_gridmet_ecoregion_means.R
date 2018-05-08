@@ -7,8 +7,8 @@
 #   rmin
 #   pr
 
-year1 <- 1992
-year2 <- 2017
+year1 <- 2018 # Can go to 1992 but only have PM data starting in 1999
+year2 <- 2018
 months_select <- c(2,3,4)
 ecoregion_select <- 6.2
 
@@ -66,15 +66,17 @@ deltaDay <- length(day1:day2)
 blank <- rep(NA, nYears)
 tmmx_mean <- blank
 rmin_mean <- blank
-pr_total <- blank
-df <- data.frame(tmmx_mean=tmmx_mean, rmin_mean=rmin_mean, pr_total=pr_total,
+pr_sum <- blank
+df <- data.frame(tmmx_mean=tmmx_mean, rmin_mean=rmin_mean, pr_sum=pr_sum,
                  row.names = years)
 
+# Create means and sums for each year
 for (i in 1:nYears){
   
   print(paste0("Getting data for year:", years[i]))
   
-  # Handle tmmx [585 1386  366]
+  # ----------------------------------------------------------------------------
+  # Handle tmmx [585 1386  366] ------------------------------------------------
   f  <- grid_file(nc_data_dir, "tmmx", years[i])
   nc <- nc_open(f)
   lon <- ncvar_get(nc, varid="lon"); nLon <- length(lon)
@@ -83,25 +85,46 @@ for (i in 1:nYears){
                   start=c(1,1, day1), count = c(nLat, nLon, deltaDay) )
   # provide additional temporal sanity checks for the first var loaded 
   delta_seconds <- ncvar_get(nc, varid="day", start=day1, count=deltaDay) * 24*60^2
+  nc_close(nc)
   t <- as.POSIXct(delta_seconds, origin="1900-01-01 00:00:00", tz="UTC")
-  print(paste("Getting data for CONUS dates:", t[1], "-",t[length(t)]))
+  print(paste("Predictor days for year:", t[1], "-",t[length(t)]))
   # Take the mean of the time dimension (first and second)
   tmmx_t_mean <- apply(tmmx, 1:2, mean)
-  tmmx_eco_mean <- mean(tmmx_t_mean[ecoregion_mask], na.rm = T) # NA are edges of grid where not land
+  # Take the mean of the ecoregion of interest and store it
+  df$tmmx_mean[i] <- mean(tmmx_t_mean[ecoregion_mask], na.rm = T) # NA are edges of grid where not land
   
+  # ----------------------------------------------------------------------------
+  # Handle rmin [585 1386  366] ------------------------------------------------
+  f  <- grid_file(nc_data_dir, "rmin", years[i])
+  nc <- nc_open(f)
+  rmin  <- ncvar_get(nc, varid="relative_humidity", 
+                     start=c(1, 1, day1), count = c(nLat, nLon, deltaDay) )
+  nc_close(nc)
+  rmin_t_mean <- apply(rmin, 1:2, mean)
+  df$rmin_mean[i] <- mean(rmin_t_mean[ecoregion_mask], na.rm = T) 
   
-  # subset all of the data spatially
-  
-  
+  # ----------------------------------------------------------------------------
+  # Handle rmin [585 1386  366] ------------------------------------------------
+  f  <- grid_file(nc_data_dir, "pr", years[i])
+  nc <- nc_open(f)
+  pr  <- ncvar_get(nc, varid="precipitation_amount", ## mm
+                     start=c(1, 1, day1), count = c(nLat, nLon, deltaDay) )
+  nc_close(nc)
+  pr_t_sum <- apply(pr, 1:2, sum)
+  df$pr_sum[i] <- mean(pr_t_sum[ecoregion_mask], na.rm = T) 
   
   
 }
 
+df$year <- years
 
+# ------------------------ Save the data----------------------------------------
+saveName <- paste0("Data/gridmet_summary_",year1,"-",year2,"_", min(months_select), "-", 
+                   max(months_select), "_eco=", ecoregion_select, ".RData")
+assign("gridmet_summary", df)
 
-
-
-
+# Save these data for easy loading later
+save(gridmet_summary, file=saveName)
 
 
 
