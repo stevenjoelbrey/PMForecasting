@@ -7,6 +7,9 @@
 # a lot of calculations happenning here, so it takes forever..
 # TODO: optimize forloop. 
 
+# gridMet data URL: http://www.climatologylab.org/gridmet.html
+# Level II ecoregion data URL: https://www.epa.gov/eco-research/ecoregions-north-america
+
 library(sp)
 library(maps)
 library(ncdf4)
@@ -32,8 +35,8 @@ nc_close(nc)
 #quartz()
 
 # Create an array to store the ecoregion name for each point in the grid
-ecoregion_grid <- tmmn[,,1] # only need the spatial dimensions 
-ecoregion_grid[] <- 0 # make all the values zero so they are easy to replace! 
+gridmet_ecoregions <- tmmn[,,1] # only need the spatial dimensions 
+gridmet_ecoregions[] <- 0 # make all the values zero so they are easy to replace! 
 
 # loop through each point and make an assignment
 nLat <- length(lat)
@@ -51,7 +54,9 @@ for (i in 1:nLat){ # loop starts in upper left of CONUS
     
     # Overlap calculation
     mask <- sp::over(p, SPDF)
-    ecoregion_grid[i,j] <- as.numeric(as.character(mask$NA_L2CODE))
+    gridmet_ecoregions[i,j] <- as.numeric(as.character(mask$NA_L2CODE))
+    
+    # TODO: Assign closest when the above response is NA
     
     count <- count + 1 
     if(count%%1000==0){
@@ -61,5 +66,5 @@ for (i in 1:nLat){ # loop starts in upper left of CONUS
   }
 }
 
-save(ecoregion_grid, file="ecoregion_grid_west.RData")
+save(gridmet_ecoregions, file="gridmet_ecoregions.RData")
 print("script_complete")
