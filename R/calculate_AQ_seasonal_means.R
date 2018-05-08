@@ -83,11 +83,27 @@ for (i in 1:nYears){
   
 }
 
+# ------------------------ Save the data----------------------------------------
 # Save dataframe the means, this is what we will use to make the model 
+saveName <- paste0("Data/PM25_summary_", month1, "-", month2, 
+                   "_eco=", ecoregion_select, ".RData")
+# Create a dataframe so that data is stored in a more descriptive way
+PM_summary <- data.frame(year=years, PM25_mean=yearMean)
 
+save(PM_summary, file=saveName)
 
+# ------------------------ plot simple map using base --------------------------
+
+png(filename="Figures/monitor_map.png", width=1000, height=700, res=200)
+map("state", xlim=c(-125,-100))
+plot(SPDF, add=T, col="forestgreen")
+points(df_all$Longitude, df_all$Latitude, pch=19, col="black", cex=0.5)
+dev.off()
+
+# ------------------------ plot the data with ggplot2() ------------------------
 # Plot box plots of PM in region vs. year
 
+# Make a year factor for all rows for easy ggplot2() plotting
 df_all$year <- factor(year(df_all$Date.Local))
 
 
